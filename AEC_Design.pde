@@ -1,7 +1,7 @@
 AEC aec;
 int numCols = 1200 / 16 + 1;
 Water[] curWave = new Water[numCols];
-Water[] curWave2 = new Water[numCols];
+Water[] highlightWave = new Water[numCols];
 Water[] prevWave = new Water[numCols];
 float ten=0.025; //Tension
 float damp=0.001; //Dampening (Oscillating)
@@ -10,7 +10,7 @@ Stone curStone;
 Stone prevStone;
 JSONObject waveData;
 color bl = color(63, 135, 252);
-color bl2 = color(137, 215, 255);
+color highlightColor = color(137, 215, 255);
 color wh = color(255);
 float currWaveHeight;
 float maxWaveHeight;
@@ -26,6 +26,7 @@ void setup() {
     waveData = loadJSONObject("https://marine-api.open-meteo.com/v1/marine?latitude=39.611944&longitude=-9.085556&current=wave_height&hourly=wave_height&daily=wave_height_max&timezone=GMT&past_days=7&past_hours=24&forecast_hours=24&models=best_match");
     currWaveHeight = waveData.getJSONObject("current").getFloat("wave_height");
     maxWaveHeight = getMaxFromJsonArray(waveData.getJSONObject("daily").getJSONArray("wave_height_max"));
+    print("\n", "Fetched Wave Data: ", currWaveHeight, " ", maxWaveHeight, "\n");
   }
   catch (NullPointerException e) {
     print("\n", "Unable to fetch wave data using default data.", "\n");
@@ -33,15 +34,13 @@ void setup() {
     maxWaveHeight = 3;
   }
 
-  print(currWaveHeight, maxWaveHeight);
-
   for (int i=0; i < numCols; i++) {
 
     float cwh = map(currWaveHeight, 0, maxWaveHeight, 20, 15);
     float pwh = map(maxWaveHeight, 0, maxWaveHeight, 20 , 15);
 
     curWave[i] = new Water(i, 0, cwh, cwh, 0);
-    curWave2[i] = new Water(i, 0, cwh + 3, cwh + 3, 0);
+    highlightWave[i] = new Water(i, 0, cwh + 3, cwh + 3, 0);
     prevWave[i] = new Water(i, 0, pwh, pwh, 0);
   }
 
@@ -65,23 +64,9 @@ void draw() {
   handleStone(prevStone, maxWaveHeight);
   handleStone(curStone, currWaveHeight);
 
-  if (prevStone.pos.y >= 240) {
-    prevStone.pos.y = -10;
-    prevStone.pos.x = width / aec.getScaleX();
-    prevStone.vel.y = 0.5;
-    //prevStone.alpha = 255;
-  }
-
-  if (curStone.pos.y >= 240) {
-    curStone.pos.y = -10;
-    curStone.pos.x = width / aec.getScaleX();
-    curStone.vel.y = 2;
-    //curStone.alpha = 255;
-  }
-
   drawWave(prevWave, wh, prevStone, false);
   drawWave(curWave, bl, curStone, true);
-  drawWave(curWave2, bl2, curStone, true);
+  drawWave(highlightWave, highlightColor, curStone, true);
 
   aec.endDraw();
   aec.drawSides();
@@ -151,6 +136,5 @@ void handleStone(Stone s, float h) {
     s.pos.y = -10;
     s.pos.x = width / aec.getScaleX();
     s.vel.y = map(h, 0, maxWaveHeight, 1, 2.1);
-    //prevStone.alpha = 255;
   }
 }
