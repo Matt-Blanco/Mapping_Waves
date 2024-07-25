@@ -9,7 +9,7 @@ class Stone {
     pos = p;
     acc = new PVector(0, 0.05);
     vel = new PVector(0, 2);
-    alpha = 125;
+    alpha = 0;
   }
 
   void run() {

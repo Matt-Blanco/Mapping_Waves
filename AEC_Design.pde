@@ -3,22 +3,32 @@ int numCols = 1200 / 16 + 1;
 Water[] curWave = new Water[numCols];
 Water[] highlightWave = new Water[numCols];
 Water[] prevWave = new Water[numCols];
+int endingWaveHeight = 30;
 float ten=0.025; //Tension
 float damp=0.001; //Dampening (Oscillating)
-float spread=0.001;
+float spread=0.0009;
 Stone curStone;
 Stone prevStone;
+Stone prevEndStone;
 JSONObject waveData;
 color bl = color(63, 135, 252);
-color highlightColor = color(137, 215, 255);
-color wh = color(255);
+color highlightColor = color(137, 170, 255);
+color wh = color(25, 58, 188);
 float currWaveHeight;
 float maxWaveHeight;
+int time;
+float alphaStr = 0;
+float alphaEnd = 0;
+int transitionTracker = 0;
+boolean transitionToBeginning = false;
 
 void setup() {
   size(1200, 500);
 
   frameRate(18);
+
+  aec = new AEC();
+  aec.init();
 
   numCols = width / 16 + 1;
 
@@ -26,7 +36,7 @@ void setup() {
     waveData = loadJSONObject("https://marine-api.open-meteo.com/v1/marine?latitude=39.611944&longitude=-9.085556&current=wave_height&hourly=wave_height&daily=wave_height_max&timezone=GMT&past_days=7&past_hours=24&forecast_hours=24&models=best_match");
     currWaveHeight = waveData.getJSONObject("current").getFloat("wave_height");
     maxWaveHeight = getMaxFromJsonArray(waveData.getJSONObject("daily").getJSONArray("wave_height_max"));
-    print("\n", "Fetched Wave Data: ", currWaveHeight, " ", maxWaveHeight, "\n");
+    print("\n", "Fetched Wave Data: ", currWaveHeight, "m ", maxWaveHeight, "m\n");
   }
   catch (NullPointerException e) {
     print("\n", "Unable to fetch wave data using default data.", "\n");
@@ -37,21 +47,20 @@ void setup() {
   for (int i=0; i < numCols; i++) {
 
     float cwh = map(currWaveHeight, 0, maxWaveHeight, 20, 15);
-    float pwh = map(maxWaveHeight, 0, maxWaveHeight, 20 , 15);
+    float pwh = map(maxWaveHeight, 0, maxWaveHeight, 20, 15);
 
     curWave[i] = new Water(i, 0, cwh, cwh, 0);
-    highlightWave[i] = new Water(i, 0, cwh + 3, cwh + 3, 0);
     prevWave[i] = new Water(i, 0, pwh, pwh, 0);
+    highlightWave[i] = new Water(i, 0, cwh + 3, cwh + 3, 0);
   }
 
-  curStone = new Stone(new PVector(75, -1));
-  prevStone = new Stone(new PVector(75, -1));
-
-  aec = new AEC();
-  aec.init();
+  curStone = new Stone(new PVector(72, -1));
+  prevStone = new Stone(new PVector(72, -1));
+  prevEndStone = new Stone(new PVector(2, -1));
 }
 
 void draw() {
+  time = millis() / 1000;
   aec.beginDraw();
 
   fill(0);
@@ -62,20 +71,59 @@ void draw() {
   prevStone.run();
 
   handleStone(prevStone, maxWaveHeight);
+  //handleStone(prevEndStone, maxWaveHeight);
   handleStone(curStone, currWaveHeight);
 
-  drawWave(prevWave, wh, prevStone, false);
-  drawWave(curWave, bl, curStone, true);
-  drawWave(highlightWave, highlightColor, curStone, true);
+  xspacing -= .008;
+  if (xspacing <= 1 && !transitionToBeginning) {
+    alphaStr = 255; //- curWave.h / 3;
+    alphaEnd += 0.8;
+
+    if (alphaEnd >= 255) {
+      alphaEnd = 255;
+    }
+  } else {
+    drawPixelatedWater();
+  }
+
+  println(alphaStr, " ", alphaEnd);
+
+  if (alphaStr == 255 && alphaEnd == 255) {
+    transitionToBeginning = true;
+    xspacing = 0.008;
+  }
+
+  if (transitionToBeginning && transitionTracker <= 90) {
+    transitionTracker++;
+  }
+
+  alphaStr = map(xspacing, 1, 4, 255, 0);
+
+  println(transitionTracker);
+  if (transitionTracker >= 180 && transitionToBeginning) {
+    xspacing += .008;
+    println(xspacing);
+    alphaStr = map(xspacing, 0, 4, 255, 0);
+    alphaEnd = map(xspacing, 0, 4, 255, 0);
+
+    if (alphaStr == 0) {
+      transitionToBeginning = false;
+    }
+  }
+
+  drawWave(curWave, bl, curStone, true, alphaStr);
+  drawWave(prevWave, wh, prevStone, false, alphaEnd);
+  drawWave(highlightWave, highlightColor, curStone, true, alphaEnd);
+
 
   aec.endDraw();
   aec.drawSides();
 }
 
-void drawWave(Water[] water, color c, Stone stone, boolean customOpacity) {
+void drawWave(Water[] water, color c, Stone stone, boolean customOpacity, float al) {
   beginShape();
   for (int i = 0; i < numCols; i++) {
-    water[i].display(c, customOpacity);
+    water[i].display(c, customOpacity, al);
     water[i].update(damp, ten);
 
     if (stone.pos.y <= 40 && stone.vel.y >= 1.8) {
@@ -94,15 +142,13 @@ void drawWave(Water[] water, color c, Stone stone, boolean customOpacity) {
           water[l-1].spd += lDeltas[l];
         }
 
-        if (l < numCols-1) {
-
-          rDeltas[l] = spread * ( water[l].h -  water[l+1].h);
-          water[l+1].spd += rDeltas[l];
+        if (l < numCols - 1) {
+          rDeltas[l] = spread * (water[l].h -  water[l + 1].h);
+          water[l + 1].spd += rDeltas[l];
         }
       }
 
-      for (int r = 0; r < numCols; r++)
-      {
+      for (int r = 0; r < numCols; r++) {
         if (r > 0)
           water[r - 1].h += lDeltas[r];
         if (r < numCols - 1)
