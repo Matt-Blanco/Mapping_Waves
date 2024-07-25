@@ -20,7 +20,7 @@ class Water {
     if (customOpacity) {
       fill(c, 255 - h / 3);
     } else {
-      fill(c, 60);
+      fill(c, 95);
     }
     vertex(x, h);
   }
