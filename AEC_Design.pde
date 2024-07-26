@@ -1,3 +1,5 @@
+import processing.sound.*;
+
 AEC aec;
 int numCols = 1200 / 16 + 1;
 Water[] curWave = new Water[numCols];
@@ -21,9 +23,12 @@ float alphaStr = 0;
 float alphaEnd = 0;
 int transitionTracker = 0;
 boolean transitionToBeginning = false;
+SoundFile waveSound;
 
 void setup() {
   size(1200, 500);
+  
+  waveSound = new SoundFile(this, "waves.mp3");
 
   frameRate(18);
 
@@ -57,6 +62,9 @@ void setup() {
   curStone = new Stone(new PVector(72, -1));
   prevStone = new Stone(new PVector(72, -1));
   prevEndStone = new Stone(new PVector(2, -1));
+  
+  waveSound.play();
+  waveSound.loop();
 }
 
 void draw() {
