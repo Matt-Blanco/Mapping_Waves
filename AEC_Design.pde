@@ -12,8 +12,8 @@ Stone prevStone;
 Stone prevEndStone;
 JSONObject waveData;
 color bl = color(63, 135, 252);
-color highlightColor = color(137, 170, 255);
-color wh = color(25, 58, 188);
+color highlightColor = color(160, 170, 255);
+color wh = color(50, 75, 188);
 float currWaveHeight;
 float maxWaveHeight;
 int time;
@@ -74,10 +74,13 @@ void draw() {
   //handleStone(prevEndStone, maxWaveHeight);
   handleStone(curStone, currWaveHeight);
 
-  xspacing -= .008;
+  if (!transitionToBeginning) {
+    xspacing -= .008;
+  }
+
   if (xspacing <= 1 && !transitionToBeginning) {
     alphaStr = 255; //- curWave.h / 3;
-    alphaEnd += 0.8;
+    alphaEnd += 1;
 
     if (alphaEnd >= 255) {
       alphaEnd = 255;
@@ -85,36 +88,30 @@ void draw() {
   } else {
     drawPixelatedWater();
   }
-
-  println(alphaStr, " ", alphaEnd);
-
   if (alphaStr == 255 && alphaEnd == 255) {
     transitionToBeginning = true;
     xspacing = 0.008;
   }
 
-  if (transitionToBeginning && transitionTracker <= 90) {
+  if (transitionToBeginning && transitionTracker <= 30) {
     transitionTracker++;
   }
 
   alphaStr = map(xspacing, 1, 4, 255, 0);
 
-  println(transitionTracker);
-  if (transitionTracker >= 180 && transitionToBeginning) {
+  if (transitionTracker >= 30 && transitionToBeginning) {
     xspacing += .008;
-    println(xspacing);
     alphaStr = map(xspacing, 0, 4, 255, 0);
     alphaEnd = map(xspacing, 0, 4, 255, 0);
 
-    if (alphaStr == 0) {
+    if (alphaStr <= 0) {
       transitionToBeginning = false;
     }
   }
 
-  drawWave(curWave, bl, curStone, true, alphaStr);
+  drawWave(curWave, highlightColor, curStone, true, alphaStr);
   drawWave(prevWave, wh, prevStone, false, alphaEnd);
-  drawWave(highlightWave, highlightColor, curStone, true, alphaEnd);
-
+  drawWave(highlightWave, bl, curStone, true, alphaEnd);
 
   aec.endDraw();
   aec.drawSides();

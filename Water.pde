@@ -30,7 +30,7 @@ class Water {
     //} else {
     //  al = map(xspacing, 1, 4, 255, 50);
     //}
-    
+
     if (customOpacity) {
       fill(c, al);
     } else {
@@ -42,11 +42,11 @@ class Water {
 
 void drawPixelatedWater() {
   // Increment theta (try different values for 'angular velocity' here
-  println("xspacing ", xspacing);
   if (floor(xspacing) <= 1) {
     yvalues = new float[30];
+  } else {
+    yvalues = new float[w/floor(xspacing)];
   }
-  yvalues = new float[w/floor(xspacing)];
   w = width / aec.getScaleX() + 1;
   dx = (TWO_PI / period) * xspacing;
   theta += 0.08;
@@ -63,7 +63,7 @@ void drawPixelatedWater() {
 
 void renderWave() {
   noStroke();
-  fill(color(63, 135, 252), map(xspacing, 1, 4, 0, 255));
+  fill(highlightColor, map(xspacing, 1, 4, 0, 255));
   // A simple way to draw the wave with an ellipse at each location
   for (int x = 0; x < yvalues.length; x++) {
     rect(x * xspacing, (height / aec.getScaleY() / 4) + yvalues[x], 2, (height / aec.getScaleY()));
